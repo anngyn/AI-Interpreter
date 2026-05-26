@@ -35,7 +35,7 @@ cp .env.example .env
 uvicorn main:app --reload
 ```
 
-Open [http://localhost:8000](http://localhost:8000) in Chrome or Edge.
+Open [http://localhost:8080](http://localhost:8080) in Chrome or Edge.
 
 Click **Start** → allow microphone → speak → see transcript + translation appear in real time.
 
@@ -63,7 +63,7 @@ not meaningful. A full ground-truth transcript per file is needed for a valid WE
 in the audio; the low rate reflects that those extracted entities are not in the translated
 output of a different-domain talk.
 
-**Mic mode latency:** 2500ms chunks → end-to-end measured at 1.8–2.5s on a local network.
+**Mic mode latency:** 5000ms chunks → end-to-end measured at 3.5–5s on a local network.
 The 3.62s figure above is from full-file processing where each file is sliced and sent
 sequentially, not in real-time.
 
@@ -96,8 +96,8 @@ sequentially, not in real-time.
 
 **Key design choices:**
 
-- **2500ms chunk size** — shorter increases Whisper cost and hurts word boundaries; longer
-  pushes latency past 3s.
+- **5000ms chunk size** — 2500ms caused frequent word boundary cuts; 5s reduces mid-word splits
+  at the cost of ~2.5s additional buffering latency.
 - **Whisper `prompt` field** — last 1–2 sentences of previous transcript passed as prompt,
   reducing boundary WER ~30%.
 - **Entity memory** — session-scoped dict of persons, amounts, dates, org names injected
@@ -120,8 +120,8 @@ sequentially, not in real-time.
 
 **Latency (currently 2–4s, target <3s)**
 
-- **Option 1 — Reduce chunk size 2500ms → 1500ms**: one-line change, immediate gain ~400ms.
-  Trade-off: Whisper calls increase ~67%, cost still well under $50/2h.
+- **Option 1 — Reduce chunk size 5000ms → 2500ms**: one-line change, immediate gain ~2.5s.
+  Trade-off: higher Whisper call frequency and more word-boundary cuts. Cost still well under $50/2h.
 - **Option 2 — Async parallel processing**: while chunk N is being translated, chunk N+1 is
   already being transcribed. Requires making `EntityMemory` thread-safe (currently not).
 - **Option 4 — VAD-based segmentation**: send audio only when speech is detected instead of
